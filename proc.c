@@ -339,6 +339,9 @@ scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+      
+      cprintf("Process running: [%s], id: [%d]\n", p->name, p->pid);
+
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
@@ -349,7 +352,7 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-      cprintf("Process [%s:%d] is running\n", p->name, p->pid);
+      //cprintf("Process running: [%s], id: [%d]\n", p->name, p->pid);
     }
     release(&ptable.lock);
 
