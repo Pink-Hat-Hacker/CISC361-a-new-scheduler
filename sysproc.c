@@ -16,14 +16,15 @@ struct {
 int sys_crsp(void) {
 	struct proc *pr;
 	acquire(&ptableSYS.lock);
+	cprintf("swag");
 
 	for (pr = ptableSYS.proc; pr < &ptableSYS.proc[NPROC]; pr++) {
 		switch (pr->state) {
 			case RUNNING:
-				cprintf("RUNNING CASE");
+				cprintf("%s\t%d\tRUNNING CASE\n", pr->name, pr->pid);
 				break;
 			case SLEEPING:
-				cprintf("SLEEPING CASE");
+				cprintf("%s\t%d\tSLEEPING CASE\n", pr->name, pr->pid);
 				break;
 			default:
 				break;
