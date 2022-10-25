@@ -7,6 +7,32 @@
 #include "mmu.h"
 #include "proc.h"
 
+#include "spinlock.h"
+struct {
+	struct spinlock lock;
+	struct proc proc[NPROC];
+} ptableSYS;
+
+int sys_crsp(void) {
+	struct proc *pr;
+	acquire(&ptableSYS.lock);
+
+	for (pr = ptableSYS.proc; pr < &ptableSYS.proc[NPROC]; pr++) {
+		switch (pr->state) {
+			case RUNNING:
+				cprintf("RUNNING CASE");
+				break;
+			case SLEEPING:
+				cprintf("SLEEPING CASE");
+				break;
+			default:
+				break;
+		}
+	}
+	release(&ptableSYS.lock);
+	return 0;
+}
+
 int
 sys_fork(void)
 {
