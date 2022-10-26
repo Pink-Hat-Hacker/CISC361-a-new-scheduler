@@ -14,32 +14,20 @@ struct {
 } ptableSYS;
 
 int sys_crsp(void) {
-	struct proc *pr;
-	acquire(&ptableSYS.lock);
-	cprintf("NAME\tPID\tSTATE\n");
-  	cprintf("---------------------------\n");
-
-	for (pr = ptableSYS.proc; pr < &ptableSYS.proc[NPROC]; pr++) {
-		cprintf("%s",pr->state);
-		if (pr->state == RUNNING) {
-			cprintf("inside RUNNING");
-			cprintf("%s\t%d\tRUNNING\n", pr->name, pr->pid);
-		} else if (pr->state == SLEEPING) {
-			cprintf("%s\t%d\tSLEEPING\n", pr->name, pr->pid);
-		}/*
-		switch (pr->state) {
-			case RUNNING:
-				cprintf("%s\t%d\tRUNNING\n", pr->name, pr->pid);
-				break;
-			case SLEEPING:
-				cprintf("%s\t%d\tSLEEPING\n", pr->name, pr->pid);
-				break;
-			default:
-				break;
-		}*/
-	}
-	release(&ptableSYS.lock);
-	return 0;
+  cprintf("name\tpid\tstate\n");
+  cprintf("---------------------------\n");
+  struct proc *process;
+  acquire(&ptableSYS.lock);
+  for(process = ptableSYS.proc; process < &ptableSYS.proc[NPROC]; process++){
+    if(process->state == RUNNING){
+      cprintf("%s\t%d\tRUNNING\n", process->name, process->pid);
+    }
+    else if(process->state == SLEEPING){
+      cprintf("%s\t%d\tSLEEPING\n", process->name, process->pid);
+    }
+  }
+  release(&ptableSYS.lock);
+  return 1;
 }
 
 int
