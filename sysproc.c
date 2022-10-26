@@ -8,17 +8,17 @@
 #include "proc.h"
 
 #include "spinlock.h"
-struct {
+extern struct {
 	struct spinlock lock;
 	struct proc proc[NPROC];
-} ptableSYS;
+} ptable;
 
 int sys_crsp(void) {
   cprintf("name\tpid\tstate\n");
   cprintf("---------------------------\n");
   struct proc *process;
-  acquire(&ptableSYS.lock);
-  for(process = ptableSYS.proc; process < &ptableSYS.proc[NPROC]; process++){
+  acquire(&ptable.lock);
+  for(process = ptable.proc; process < &ptable.proc[NPROC]; process++){
     if(process->state == RUNNING){
       cprintf("%s\t%d\tRUNNING\n", process->name, process->pid);
     }
@@ -26,7 +26,7 @@ int sys_crsp(void) {
       cprintf("%s\t%d\tSLEEPING\n", process->name, process->pid);
     }
   }
-  release(&ptableSYS.lock);
+  release(&ptable.lock);
   return 1;
 }
 
