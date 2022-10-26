@@ -20,7 +20,13 @@ int sys_crsp(void) {
   	cprintf("---------------------------\n");
 
 	for (pr = ptableSYS.proc; pr < &ptableSYS.proc[NPROC]; pr++) {
-		//cprintf("%s",pr->state);
+		cprintf("%s",pr->state);
+		if (pr->state == RUNNING) {
+			cprintf("inside RUNNING");
+			cprintf("%s\t%d\tRUNNING\n", pr->name, pr->pid);
+		} else if (pr->state == SLEEPING) {
+			cprintf("%s\t%d\tSLEEPING\n", pr->name, pr->pid);
+		}/*
 		switch (pr->state) {
 			case RUNNING:
 				cprintf("%s\t%d\tRUNNING\n", pr->name, pr->pid);
@@ -30,7 +36,7 @@ int sys_crsp(void) {
 				break;
 			default:
 				break;
-		}
+		}*/
 	}
 	release(&ptableSYS.lock);
 	return 0;
