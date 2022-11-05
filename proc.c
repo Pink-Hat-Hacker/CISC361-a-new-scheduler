@@ -78,9 +78,16 @@ allocproc(void)
 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
-      goto found;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+	  //step 2. initiallize
+	  p->queue_num = 3;
+	  p->r_iter = 8;
+	  p->curr_queue_lev = 0;
+	  
+	  if(p->state == UNUSED) {
+		  goto found;
+	  }
+  }
 
   release(&ptable.lock);
   return 0;
@@ -349,6 +356,14 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
+      //Step 3. iterations
+      if ((p->curr_queue_lev > p->r_iter) && p->r_iter == 0) {
+	      p->queue_num += 1;
+	      p->curr_queue_lev = 0;
+      } else {
+	      p->queue_num -= 1;
+	      p->curr_queue_lev = 0;
+      }
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
