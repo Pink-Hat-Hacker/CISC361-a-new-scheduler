@@ -78,12 +78,7 @@ allocproc(void)
 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-	  //step 2. initiallize
-	  p->queue_num = 3;
-	  p->r_iter = 8;
-	  p->curr_queue_lev = 0;
-	  
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {	  
 	  if(p->state == UNUSED) {
 		  goto found;
 	  }
@@ -95,6 +90,11 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  //Step 2. initiallize
+  p->queue_num = 3;
+  p->rem_iter = 8;
+  p->idle = 0;
 
   release(&ptable.lock);
 
@@ -335,19 +335,28 @@ scheduler(void)
   
   for(;;){
     // Enable interrupts on this processor.
+    // Step 3.
+    int h_queue = ptable.proc->queue_num;
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+      if(p->state != RUNNABLE) {
+	      continue;
+      } else if (runnable_proc(p, h_queue)) {
+	      //step 3.
+	      p->idle = 0;
+	      p->rem_iter -= 1;
+      } else if (p->state == RUNNABLE) {
+	      p->idle += 1;
+	      cprintf("Process running: [%s], id: [%d]\n\tQueue Number: [%d]\n\tIdle Count: [%d]\n\tIterations left:[%d]\n", p->name, p->pid, p->queue_num, p->idle, p->rem_iter);
+	      continue;
+      } else {
+	      continue;
+      }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      
-      cprintf("Process running: [%s], id: [%d]\n", p->name, p->pid);
+      cprintf("Process running: [%s], id: [%d]\n\tQueue Number: [%d]\n\tIdle Count: [%d]\n\tIterations left:[%d]\n", p->name, p->pid, p->queue_num, p->idle, p->rem_iter);
 
       c->proc = p;
       switchuvm(p);
@@ -356,22 +365,20 @@ scheduler(void)
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
-      //Step 3. iterations
-      if ((p->curr_queue_lev > p->r_iter) && p->r_iter == 0) {
-	      p->queue_num += 1;
-	      p->curr_queue_lev = 0;
-      } else {
-	      p->queue_num -= 1;
-	      p->curr_queue_lev = 0;
-      }
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-      //cprintf("Process running: [%s], id: [%d]\n", p->name, p->pid);
-    }
+   }
     release(&ptable.lock);
 
   }
+}
+
+int runnable_proc (struct proc *p, int h_queue){
+	if ((p->queue_num < h_queue && !(p->queue_num == 0 && h_queue == 0)) || p->rem_iter <= 0){
+		return 0;
+	}
+	return 1;
 }
 
 // Enter scheduler.  Must hold only ptable.lock

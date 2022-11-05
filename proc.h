@@ -52,8 +52,8 @@ struct proc {
 	
 	//Step 1. modify proc strucure
 	int queue_num;
-	int r_iter;
-	int curr_queue_lev;
+	int rem_iter;
+	int idle;
 };
 
 // Process memory is laid out contiguously, low addresses first:
@@ -61,3 +61,6 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+//
+
+int runnable_proc (struct proc *p, int h_queue);
