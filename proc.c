@@ -347,14 +347,17 @@ scheduler(void)
 	    if (p->state == RUNNABLE) {
 		    //check queue level
 		    if (p->rem_iter <= 0) {
-		    	if (p->queue_num > 0) {
-				//change queue level w iterations remaining
-				changeQueueLevel(p, p->queue_num - 1);
-				continue;	
-			} else if (p->queue_num < 0) {
-				changeQueueLevel(p, p->queue_num + 1);
-				continue;
-			}
+			    if (p->queue_num > 0) {
+				    //change queue level w iterations remaining
+				    changeQueueLevel(p, p->queue_num - 1);
+			    }
+			    return;
+		    }
+		    if (p->rem_iter < p->idle) {
+			    if (p->queue_num < 3) {
+			    	changeQueueLevel(p, p->queue_num + 1);
+			    }
+			    return;
 		    }
 	    }
     }
