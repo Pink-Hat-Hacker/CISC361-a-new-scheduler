@@ -341,11 +341,28 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    
+    // Step 3.
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+	    if (p->state == RUNNABLE) {
+		    //check queue level
+		    if (p->rem_iter <= 0) {
+		    	if (p->queue_num > 0) {
+				//change queue level w iterations remaining
+				changeQueueLevel(p, p->queue_num - 1);
+				continue;	
+			} else if (p->queue_num < 0) {
+				changeQueueLevel(p, p->queue_num + 1);
+				continue;
+			}
+		    }
+	    }
+    }
+
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE) {
 	      continue;
       } else if (runnable_proc(p, h_queue)) {
-	      //step 3.
 	      p->idle = 0;
 	      p->rem_iter -= 1;
       } else if (p->state == RUNNABLE) {
@@ -379,6 +396,30 @@ int runnable_proc (struct proc *p, int h_queue){
 		return 0;
 	}
 	return 1;
+}
+
+//change queue level
+void changeQueueLevel(struct proc *p, int new_queue_num) {
+	p->queue_num = new_queue_num;
+	p->idle = 0;
+
+	switch (new_queue_num) {
+	case 3:
+		p->rem_iter = 8;
+		break;
+	case 2:
+		p->rem_iter = 16;
+		break;
+	case 1:
+		p->rem_iter = 24;
+		break;
+	case 0:
+		p->rem_iter = 500;
+		break;
+	default:
+		cprintf("Queue Level: Not Valid!");
+		break;
+	}
 }
 
 // Enter scheduler.  Must hold only ptable.lock

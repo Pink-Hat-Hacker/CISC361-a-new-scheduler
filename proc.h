@@ -64,3 +64,4 @@ struct proc {
 //
 
 int runnable_proc (struct proc *p, int h_queue);
+void changeQueueLevel(struct proc *p, int new_queue_num);
