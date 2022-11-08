@@ -14,10 +14,10 @@ extern struct {
 } ptable;
 
 int sys_crsp(void) {
-  cprintf("name\tpid\tstate\n");
-  cprintf("---------------------------\n");
+  //cprintf("name\tpid\tstate\n---------------------------\n");
   struct proc *process;
   acquire(&ptable.lock);
+  cprintf("name\tpid\tstate\n---------------------------\n");
   for(process = ptable.proc; process < &ptable.proc[NPROC]; process++){
     if(process->state == RUNNING){
       cprintf("%s\t%d\tRUNNING\n", process->name, process->pid);

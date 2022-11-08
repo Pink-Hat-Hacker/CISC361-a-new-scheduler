@@ -351,13 +351,13 @@ scheduler(void)
 				    //change queue level w iterations remaining
 				    changeQueueLevel(p, p->queue_num - 1);
 			    }
-			    return;
+			    break;
 		    }
 		    if (p->rem_iter < p->idle) {
 			    if (p->queue_num < 3) {
 			    	changeQueueLevel(p, p->queue_num + 1);
 			    }
-			    return;
+			    break;
 		    }
 	    }
     }
