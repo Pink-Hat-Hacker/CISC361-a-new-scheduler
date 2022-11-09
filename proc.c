@@ -78,9 +78,11 @@ allocproc(void)
 
   acquire(&ptable.lock);
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
-      goto found;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {	  
+	  if(p->state == UNUSED) {
+		  goto found;
+	  }
+  }
 
   release(&ptable.lock);
   return 0;
@@ -88,6 +90,11 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  //Step 2. initiallize
+  p->queue_num = 3;
+  p->rem_iter = 8;
+  p->idle = 0;
 
   release(&ptable.lock);
 
@@ -326,37 +333,129 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   
-  for(;;){
-    // Enable interrupts on this processor.
+  for(;;) {
+    // this is the maximum queue height
+    int h_queue = ptable.proc->queue_num;
     sti();
-
-    // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      
-      cprintf("Process running: [%s], id: [%d]\n", p->name, p->pid);
-
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-      //cprintf("Process running: [%s], id: [%d]\n", p->name, p->pid);
+    
+    // Looping over the process table
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+	    for (struct proc *q = ptable.proc; q < &ptable.proc[NPROC]; q++) {
+	    	if (q->state == RUNNABLE) {
+			checkQueueLevel(q, &h_queue);
+		}
+	    }
+	    
+	    if(p->state != RUNNABLE) {
+		    continue;
+	    } else if (runnableProc(p, h_queue) == 0) {
+		    p->idle += 1;
+		    continue;
+		    //p->rem_iter -= 1;
+	    }
+	    p->rem_iter -= 1;
+	    cprintf("Process running: [%s], id: [%d] || Queue Number: [%d] || Idle Count: [%d] || Iterations left:[%d]\n", p->name, p->pid, p->queue_num, p->idle, p->rem_iter);
+	    
+	    c->proc = p;
+	    switchuvm(p);
+	    p->state = RUNNING;
+	    swtch(&(c->scheduler), p->context);
+	    switchkvm();
+	    
+	    // Process is done running for now.
+	    // It should have changed its p->state before coming back.
+	    c->proc = 0;
     }
     release(&ptable.lock);
-
   }
+}
+
+/**
+ * runnableProc
+ *
+ * params: struct proc, int
+ * returns: int
+ *
+ * purpose: 
+ * 	checks if the queue number is less than the max and that it is not == to 0.
+ * 	or that the remaining iterations is not = 0.
+ * 	this way it can proceed the process, allow idle to reset, and rem_iter to --
+ * 	or 
+ * 	increase the idle count
+ * */
+int runnableProc (struct proc *p, int h_queue){
+	if ((p->queue_num < h_queue && !(p->queue_num == 0 && h_queue == 0)) || p->rem_iter <= 0){
+		return 0;
+	}
+	return 1;
+}
+
+/**
+ * checkQueueLevel
+ *
+ * params: struct proc
+ * returns: void
+ *
+ * purpose: checks the current queue level and calls changeQueueLevel accoridingly
+ * */
+void checkQueueLevel(struct proc *p, int *h_queue) {
+	if (p->queue_num > *h_queue) {
+		*h_queue = p->queue_num;
+		return;
+	}
+	if (p->rem_iter <= 0) {
+		if (p->queue_num > 0) {
+			// sending to helper func changeQueueLevel
+                        changeQueueLevel(p, p->queue_num - 1);
+                        return;
+                }
+                // Edge case: if queue level is 0
+                changeQueueLevel(p, 0);
+                return;
+	}
+        if (p->rem_iter < p->idle) {
+               if (p->queue_num < 3) {
+		       changeQueueLevel(p, p->queue_num + 1);
+                       return;
+               }
+               // Edge Case: reset to max
+               changeQueueLevel(p, 3);
+               return;
+        }
+}
+
+/**
+ * changeQueueLevel
+ *
+ * params: struct proc, int
+ * returns: void
+ *
+ * purpose: 
+ * 	resets idle count and remaining iterations for a process. 
+ * 	changes queue level accordingly.
+ * */
+void changeQueueLevel(struct proc *p, int new_queue_num) {
+	p->queue_num = new_queue_num;
+	p->idle = 0;
+	//p->rem_iter = 8;
+	switch(new_queue_num) {
+		case 3:
+			p->rem_iter = 8;
+			break;
+		case 2:
+			p->rem_iter = 16;
+			break;
+		case 1:
+			p->rem_iter = 24;
+			break;
+		case 0:
+			p->rem_iter = 500;
+			break;
+		default:
+			cprintf("Unknown Queue Level");
+			break;
+	}
 }
 
 // Enter scheduler.  Must hold only ptable.lock
